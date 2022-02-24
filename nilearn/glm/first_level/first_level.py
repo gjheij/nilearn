@@ -606,7 +606,7 @@ class FirstLevelModel(BaseGLM):
         return self
 
     def compute_contrast(self, contrast_def, stat_type=None,
-                         output_type='z_score'):
+                         output_type='z_score', return_type="imgs"):
         """Generate different outputs corresponding to
         the contrasts provided e.g. z_map, t_map, effects and variance.
         In multi-session case, outputs the fixed effects map.
@@ -632,6 +632,9 @@ class FirstLevelModel(BaseGLM):
             Type of the output map. Can be 'z_score', 'stat', 'p_value',
             'effect_size', 'effect_variance' or 'all'.
             Default='z_score'.
+
+        return_type : str, optional
+            This is a fix to work with 2D-data, rather than nifti-files.
 
         Returns
         -------
@@ -679,15 +682,21 @@ class FirstLevelModel(BaseGLM):
                                                   con_vals, stat_type)
         output_types = (valid_types[:-1]
                         if output_type == 'all' else [output_type])
+        
         outputs = {}
         for output_type_ in output_types:
             estimate_ = getattr(contrast, output_type_)()
-            # Prepare the returned images
-            output = self.masker_.inverse_transform(estimate_)
-            contrast_name = str(con_vals)
-            output.header['descrip'] = (
-                '%s of contrast %s' % (output_type_, contrast_name))
-            outputs[output_type_] = output
+            
+            if return_type == "imgs":
+                # Prepare the returned images
+                output = self.masker_.inverse_transform(estimate_)
+                contrast_name = str(con_vals)
+                output.header['descrip'] = (
+                    '%s of contrast %s' % (output_type_, contrast_name))
+                outputs[output_type_] = output
+            else:
+                output = estimate_
+                outputs[output_type_] = output
 
         return outputs if output_type == 'all' else output
 
